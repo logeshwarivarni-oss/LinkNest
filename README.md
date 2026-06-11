@@ -1,1 +1,3 @@
 # LinkNest
+**OVERVIEW**
+A full-stack URL Shortener application built with React, Node.js (Express), and MongoDB, where authenticated users can shorten long URLs, manage their links from a personal dashboard, and track performance analytics. Each shortened URL records click counts, visit timestamps, and supports features like custom aliases, QR code generation, and expiry dates. The backend handles server-side redirects, JWT-based authentication, and stores all analytics data in the database with proper validation. The frontend provides a responsive, clean dashboard with real-time feedback, copy-to-clipboard functionality, and visual charts for daily click trends.
