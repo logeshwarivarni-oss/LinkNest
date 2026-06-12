@@ -4,6 +4,11 @@
 A full-stack URL Shortener application built with React, Node.js (Express), and MongoDB, where authenticated users can shorten long URLs, manage their links from a personal dashboard, and track performance analytics. Each shortened URL records click counts, visit timestamps, and supports features like custom aliases, QR code generation, and expiry dates. The backend handles server-side redirects, JWT-based authentication, and stores all analytics data in the database with proper validation. The frontend provides a responsive, clean dashboard with real-time feedback, copy-to-clipboard functionality, and visual charts for daily click trends.
 
 ---
+**OBJECTIVES**
+The objective of this project is to design and develop a scalable, secure, and user-friendly URL Shortener platform that enables users to create, manage, and analyze shortened links efficiently. This application demonstrates practical full-stack engineering skills including REST API design, database modeling, JWT authentication, analytics tracking, and responsive frontend dashboard development — built as part of a hackathon challenge to solve real-world link management needs.
+
+
+------
 
   **TECH STACK**
 - **Frontend**: React (Vite, Tailwind CSS, Lucide icons, Recharts)
