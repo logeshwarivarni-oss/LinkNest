@@ -1,12 +1,11 @@
-# LinkNest 🌐 - Premium URL Shortener & Analytics
+# LinkNest
 
 **OVERVIEW**
 A full-stack URL Shortener application built with React, Node.js (Express), and MongoDB, where authenticated users can shorten long URLs, manage their links from a personal dashboard, and track performance analytics. Each shortened URL records click counts, visit timestamps, and supports features like custom aliases, QR code generation, and expiry dates. The backend handles server-side redirects, JWT-based authentication, and stores all analytics data in the database with proper validation. The frontend provides a responsive, clean dashboard with real-time feedback, copy-to-clipboard functionality, and visual charts for daily click trends.
 
 ---
 
-## 🛠️ Tech Stack
-
+  **TECH STACK**
 - **Frontend**: React (Vite, Tailwind CSS, Lucide icons, Recharts)
 - **Backend**: Node.js & Express.js (express-validator)
 - **Database**: MongoDB & Mongoose
@@ -14,8 +13,7 @@ A full-stack URL Shortener application built with React, Node.js (Express), and 
 
 ---
 
-## 🎯 Features
-
+ **FEATURES**
 1. **JWT Authentication**: Secure register and login system with hashed passwords using `bcrypt`.
 2. **URL Shortening**: Generates unique, 6-character alphanumeric slugs with automatic collision safety checks.
 3. **Custom Aliases**: Allow users to customize shortened links with specific slugs (e.g. `/r/portfolio`).
@@ -32,9 +30,8 @@ A full-stack URL Shortener application built with React, Node.js (Express), and 
 
 ---
 
-## 🏗️ Architecture
+ **ARCHITECTURE**
 
-```text
                +-------------------------------------------+
                |                CLIENT (React)             |
                |                                           |
@@ -66,9 +63,7 @@ A full-stack URL Shortener application built with React, Node.js (Express), and 
                +-------------------------------------------+
 ```
 
----
-
-## ⚙️ Setup Instructions
+ **SETUP INSTRUCTIONS**
 
 ### Prerequisites
 Make sure you have [Node.js](https://nodejs.org/) (v16+) and [MongoDB](https://www.mongodb.com/try/download/community) installed and running locally.
@@ -96,7 +91,7 @@ Make sure you have [Node.js](https://nodejs.org/) (v16+) and [MongoDB](https://w
    npm start
    ```
 
-### 2. Client Setup
+ **2. Client Setup**
 1. Open a new terminal and navigate to the `/client` directory:
    ```bash
    cd client
@@ -113,7 +108,7 @@ Make sure you have [Node.js](https://nodejs.org/) (v16+) and [MongoDB](https://w
 
 ---
 
-## 🤖 AI Planning & Design
+**Planning & Design**
 
 During design, the application structure was built using a clean, layered architectural pattern:
 - **Separation of Concerns**: Controllers deal only with business logic, routes mapping handles parameters validation, and middleware intercepts unauthorized tokens.
@@ -122,7 +117,7 @@ During design, the application structure was built using a clean, layered archit
 
 ---
 
-## 🎬 Demo Walkthrough
+ **Demo Walkthrough**
 - [Video Demo Placeholder (Loom/YouTube)](https://youtube.com)
 
 ---
