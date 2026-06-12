@@ -19,6 +19,26 @@ const visitSchema = new mongoose.Schema({
   userAgent: {
     type: String,
     default: 'Unknown'
+  },
+  browser: {
+    type: String,
+    default: 'Unknown'
+  },
+  os: {
+    type: String,
+    default: 'Unknown'
+  },
+  device: {
+    type: String,
+    default: 'Unknown'
+  },
+  country: {
+    type: String,
+    default: 'Unknown'
+  },
+  city: {
+    type: String,
+    default: 'Unknown'
   }
 });
 

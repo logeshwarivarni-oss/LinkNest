@@ -1,6 +1,6 @@
 const Url = require('../models/Url');
 const Visit = require('../models/Visit');
-const { generateUniqueShortCode } = require('../utils/helpers');
+const { generateUniqueShortCode, parseUserAgent, getLocationFromIp } = require('../utils/helpers');
 
 // @desc    Shorten a long URL
 // @route   POST /api/urls/shorten
@@ -90,15 +90,37 @@ const redirectUrl = async (req, res, next) => {
       return res.status(410).json({ error: 'Short URL has expired' });
     }
 
-    // Record visit details asynchronously (non-blocking for redirect)
+    // Record visit details asynchronously (non-blocking for redirect speed)
     const ip = req.ip || req.headers['x-forwarded-for'] || 'Unknown';
     const userAgent = req.headers['user-agent'] || 'Unknown';
 
-    await Visit.create({
-      urlId: url._id,
-      ip,
-      userAgent
-    });
+    const { browser, os, device } = parseUserAgent(userAgent);
+
+    getLocationFromIp(ip)
+      .then(async (location) => {
+        await Visit.create({
+          urlId: url._id,
+          ip,
+          userAgent,
+          browser,
+          os,
+          device,
+          country: location.country,
+          city: location.city
+        });
+      })
+      .catch(async () => {
+        await Visit.create({
+          urlId: url._id,
+          ip,
+          userAgent,
+          browser,
+          os,
+          device,
+          country: 'Unknown',
+          city: 'Unknown'
+        });
+      });
 
     // Increment click counter
     url.clicks += 1;
@@ -175,12 +197,54 @@ const getUrlAnalytics = async (req, res, next) => {
       });
     }
 
+    // Browser breakdown
+    const browserStats = await Visit.aggregate([
+      { $match: { urlId: url._id } },
+      { $group: { _id: '$browser', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    // OS breakdown
+    const osStats = await Visit.aggregate([
+      { $match: { urlId: url._id } },
+      { $group: { _id: '$os', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    // Device breakdown
+    const deviceStats = await Visit.aggregate([
+      { $match: { urlId: url._id } },
+      { $group: { _id: '$device', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    // Country breakdown
+    const countryStats = await Visit.aggregate([
+      { $match: { urlId: url._id } },
+      { $group: { _id: '$country', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 }
+    ]);
+
+    // City breakdown
+    const cityStats = await Visit.aggregate([
+      { $match: { urlId: url._id } },
+      { $group: { _id: '$city', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 }
+    ]);
+
     res.json({
       url,
       totalClicks: url.clicks,
       lastVisited: lastVisit,
       recentVisits,
-      dailyTrends: formattedTrends
+      dailyTrends: formattedTrends,
+      browserStats,
+      osStats,
+      deviceStats,
+      countryStats,
+      cityStats
     });
   } catch (error) {
     next(error);
@@ -201,14 +265,162 @@ const getPublicStats = async (req, res, next) => {
 
     const isExpired = url.expiryDate && new Date(url.expiryDate) < new Date();
 
+    // Compile analytics for public view
+    const browserStats = await Visit.aggregate([
+      { $match: { urlId: url._id } },
+      { $group: { _id: '$browser', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    const osStats = await Visit.aggregate([
+      { $match: { urlId: url._id } },
+      { $group: { _id: '$os', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    const deviceStats = await Visit.aggregate([
+      { $match: { urlId: url._id } },
+      { $group: { _id: '$device', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    const countryStats = await Visit.aggregate([
+      { $match: { urlId: url._id } },
+      { $group: { _id: '$country', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 }
+    ]);
+
+    const cityStats = await Visit.aggregate([
+      { $match: { urlId: url._id } },
+      { $group: { _id: '$city', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 }
+    ]);
+
     res.json({
       originalUrl: url.originalUrl,
       shortCode: url.shortCode,
       clicks: url.clicks,
       createdAt: url.createdAt,
       expiryDate: url.expiryDate,
-      isExpired
+      isExpired,
+      browserStats,
+      osStats,
+      deviceStats,
+      countryStats,
+      cityStats
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Bulk shorten URLs via CSV parsed rows
+// @route   POST /api/urls/bulk
+// @access  Private
+const bulkShortenUrls = async (req, res, next) => {
+  try {
+    const { urls } = req.body;
+    if (!Array.isArray(urls)) {
+      return res.status(400).json({ error: 'Payload must be an array under the "urls" key' });
+    }
+    
+    if (urls.length === 0) {
+      return res.status(400).json({ error: 'URLs array cannot be empty' });
+    }
+    
+    if (urls.length > 100) {
+      return res.status(400).json({ error: 'Bulk shortening limit is 100 URLs at a time' });
+    }
+    
+    const results = [];
+    
+    for (let i = 0; i < urls.length; i++) {
+      let { originalUrl, customAlias, expiryDate } = urls[i];
+      originalUrl = (originalUrl || '').trim();
+      customAlias = (customAlias || '').trim();
+      
+      let error = null;
+      if (!originalUrl) {
+        error = 'URL is required';
+      } else {
+        // Quick regex check for valid URL schema
+        const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/i;
+        if (!urlRegex.test(originalUrl)) {
+          error = 'Invalid URL format';
+        }
+      }
+      
+      if (!error && customAlias) {
+        const aliasRegex = /^[a-zA-Z0-9_-]{3,20}$/; // Alphanumeric with dashes/underscores allowed
+        if (!aliasRegex.test(customAlias)) {
+          error = 'Custom alias must be alphanumeric, 3-20 chars';
+        } else {
+          const existing = await Url.findOne({ shortCode: customAlias });
+          if (existing) {
+            error = 'Custom alias is already in use';
+          }
+        }
+      }
+      
+      if (!error && expiryDate) {
+        const parsedDate = new Date(expiryDate);
+        if (isNaN(parsedDate.getTime())) {
+          error = 'Invalid expiry date format';
+        } else if (parsedDate <= new Date()) {
+          error = 'Expiry date must be in the future';
+        }
+      }
+      
+      if (error) {
+        results.push({
+          row: i + 1,
+          originalUrl,
+          customAlias,
+          status: 'failed',
+          error
+        });
+        continue;
+      }
+      
+      let shortCode;
+      if (customAlias) {
+        shortCode = customAlias;
+      } else {
+        shortCode = await generateUniqueShortCode();
+      }
+      
+      try {
+        const newUrl = await Url.create({
+          originalUrl,
+          shortCode,
+          customAlias: customAlias || undefined,
+          expiryDate: expiryDate ? new Date(expiryDate) : undefined,
+          userId: req.user.id
+        });
+        
+        results.push({
+          row: i + 1,
+          originalUrl,
+          customAlias,
+          shortCode,
+          shortUrl: `${process.env.BASE_URL || 'http://localhost:5000'}/r/${shortCode}`,
+          status: 'success',
+          id: newUrl._id
+        });
+      } catch (err) {
+        results.push({
+          row: i + 1,
+          originalUrl,
+          customAlias,
+          status: 'failed',
+          error: err.message || 'Server error'
+        });
+      }
+    }
+    
+    res.status(200).json({ results });
   } catch (error) {
     next(error);
   }
@@ -220,5 +432,7 @@ module.exports = {
   deleteUrl,
   redirectUrl,
   getUrlAnalytics,
-  getPublicStats
+  getPublicStats,
+  bulkShortenUrls
 };
+

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
-  ResponsiveContainer, Cell 
+  ResponsiveContainer, Cell, PieChart, Pie, Legend
 } from 'recharts';
 import StatCard from '../components/StatCard';
 
@@ -75,9 +75,14 @@ const Analytics = () => {
     );
   }
 
-  const { url, totalClicks, lastVisited, recentVisits, dailyTrends } = data;
+  const { 
+    url, totalClicks, lastVisited, recentVisits, dailyTrends,
+    browserStats, osStats, deviceStats, countryStats, cityStats 
+  } = data;
   const isExpired = url.expiryDate && new Date(url.expiryDate) < new Date();
   const shortUrl = `${BACKEND_BASE}/r/${url.shortCode}`;
+  
+  const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#3b82f6'];
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -260,17 +265,183 @@ const Analytics = () => {
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-[10px] text-slate-400">
-                    <span className="truncate max-w-[150px] flex items-center gap-1" title={visit.userAgent}>
-                      <Monitor className="w-3 h-3 text-slate-500" />
-                      {visit.userAgent}
+                    <span className="truncate max-w-[170px] flex items-center gap-1.5" title={visit.userAgent}>
+                      <Monitor className="w-3 h-3 text-slate-500 shrink-0" />
+                      <span>{visit.browser || 'Unknown'} / {visit.os || 'Unknown'} ({visit.device || 'Desktop'})</span>
                     </span>
-                    <span className="text-slate-500">
-                      {new Date(visit.timestamp).toLocaleDateString()}
+                    <span className="text-slate-550 text-[10px] font-medium shrink-0">
+                      {visit.city && visit.city !== 'Unknown' && visit.city !== 'Localhost' ? `${visit.city}, ` : ''}{visit.country || 'Unknown'}
                     </span>
                   </div>
                 </div>
               ))}
             </div>
+          )}
+        </div>
+      </div>
+
+      {/* Geolocation & Platform Analytics Breakdown Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Device & OS breakdown */}
+        <div className="glass-panel p-6 rounded-3xl space-y-6">
+          <div>
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Monitor className="w-5 h-5 text-indigo-400" />
+              Devices & OS
+            </h3>
+            <p className="text-xs text-slate-400">Visitor platforms and operating systems.</p>
+          </div>
+          
+          {deviceStats && deviceStats.length > 0 ? (
+            <div className="space-y-6">
+              <div className="h-40 flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={deviceStats.map(item => ({ name: item._id, value: item.count }))}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={45}
+                      outerRadius={60}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {deviceStats.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#fff', fontSize: '11px' }} />
+                    <Legend verticalAlign="bottom" height={36} iconType="circle" iconSize={8} formatter={(value) => <span className="text-slate-400 text-xs">{value}</span>} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              
+              <div className="space-y-2.5">
+                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Operating Systems</span>
+                <div className="space-y-2">
+                  {osStats.map((item, idx) => {
+                    const pct = totalClicks > 0 ? ((item.count / totalClicks) * 100).toFixed(0) : 0;
+                    return (
+                      <div key={idx} className="space-y-1">
+                        <div className="flex justify-between text-xs font-semibold text-slate-300">
+                          <span>{item._id}</span>
+                          <span>{pct}% ({item.count})</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-900/60 rounded-full overflow-hidden">
+                          <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${pct}%` }}></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="py-12 text-center text-slate-500 text-xs">No device or OS stats yet.</div>
+          )}
+        </div>
+
+        {/* Browser Popularity breakdown */}
+        <div className="glass-panel p-6 rounded-3xl space-y-6">
+          <div>
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Info className="w-5 h-5 text-emerald-450" />
+              Top Browsers
+            </h3>
+            <p className="text-xs text-slate-400">Browsers used to access this URL.</p>
+          </div>
+
+          {browserStats && browserStats.length > 0 ? (
+            <div className="space-y-6">
+              <div className="h-40 flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={browserStats.map(item => ({ name: item._id, value: item.count }))}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={45}
+                      outerRadius={60}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {browserStats.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#fff', fontSize: '11px' }} />
+                    <Legend verticalAlign="bottom" height={36} iconType="circle" iconSize={8} formatter={(value) => <span className="text-slate-400 text-xs">{value}</span>} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="space-y-2">
+                {browserStats.map((item, idx) => {
+                  const pct = totalClicks > 0 ? ((item.count / totalClicks) * 100).toFixed(0) : 0;
+                  return (
+                    <div key={idx} className="flex justify-between text-xs font-semibold py-1.5 border-b border-slate-900 last:border-0 text-slate-350">
+                      <span className="text-slate-400">{item._id}</span>
+                      <span className="text-slate-200">{pct}% ({item.count})</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="py-12 text-center text-slate-500 text-xs">No browser traffic recorded.</div>
+          )}
+        </div>
+
+        {/* Location / Geolocation breakdown */}
+        <div className="glass-panel p-6 rounded-3xl space-y-6">
+          <div>
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <ExternalLink className="w-5 h-5 text-amber-450" />
+              Visitor Geolocation
+            </h3>
+            <p className="text-xs text-slate-400">Top countries and cities of your visitors.</p>
+          </div>
+
+          {countryStats && countryStats.length > 0 ? (
+            <div className="space-y-5">
+              {/* Countries list */}
+              <div className="space-y-2.5">
+                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Top Countries</span>
+                <div className="space-y-2">
+                  {countryStats.map((item, idx) => {
+                    const pct = totalClicks > 0 ? ((item.count / totalClicks) * 100).toFixed(0) : 0;
+                    return (
+                      <div key={idx} className="space-y-1">
+                        <div className="flex justify-between text-xs font-semibold text-slate-300">
+                          <span>🌐 {item._id}</span>
+                          <span>{pct}%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-900/60 rounded-full overflow-hidden">
+                          <div className="h-full bg-amber-500 rounded-full" style={{ width: `${pct}%` }}></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Cities list */}
+              {cityStats && cityStats.length > 0 && (
+                <div className="space-y-2.5 border-t border-slate-800/80 pt-3">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Top Cities</span>
+                  <div className="space-y-1.5">
+                    {cityStats.map((item, idx) => (
+                      <div key={idx} className="flex justify-between text-xs text-slate-400">
+                        <span>📍 {item._id}</span>
+                        <span className="text-slate-300 font-semibold">{item.count} click{item.count > 1 ? 's' : ''}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-slate-500 text-xs">No location data.</div>
           )}
         </div>
       </div>
