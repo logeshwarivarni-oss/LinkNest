@@ -1,0 +1,192 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { 
+  BarChart3, Calendar, ExternalLink, Link2, 
+  Sparkles, ShieldCheck, ArrowRight, ShieldAlert
+} from 'lucide-react';
+
+const PublicStats = () => {
+  const { shortCode } = useParams();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+  useEffect(() => {
+    const fetchPublicStats = async () => {
+      try {
+        const res = await fetch(`${API_URL}/urls/public/stats/${shortCode}`);
+        const payload = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(payload.error || 'Failed to retrieve stats');
+        }
+        
+        setData(payload);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPublicStats();
+  }, [shortCode]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-slate-950 p-4">
+        <div className="flex flex-col items-center space-y-3">
+          <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-slate-400 text-sm">Gathering click data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-slate-950 p-4 relative overflow-hidden">
+        {/* Decorative background orbs */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-indigo-500/5 blur-3xl"></div>
+
+        <div className="glass-panel p-8 rounded-3xl max-w-md w-full text-center space-y-5 relative z-10 shadow-2xl">
+          <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto text-red-400">
+            <ShieldAlert className="w-7 h-7" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-xl font-bold text-white">Stats Lookup Failed</h3>
+            <p className="text-slate-400 text-sm">{error}</p>
+          </div>
+          <Link 
+            to="/login" 
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center space-x-2 transition shadow-lg shadow-indigo-600/25"
+          >
+            <span>Create Custom Short Links</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const { originalUrl, clicks, createdAt, expiryDate, isExpired } = data;
+
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center bg-slate-950 p-4 relative overflow-hidden">
+      {/* Decorative background orbs */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-indigo-500/10 blur-3xl animate-pulse-slow"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-purple-500/10 blur-3xl animate-pulse-slow"></div>
+
+      {/* Main Stats Card */}
+      <div className="glass-panel w-full max-w-xl rounded-3xl p-8 relative z-10 shadow-2xl space-y-8">
+        
+        {/* Header Logo & Title */}
+        <div className="flex items-center justify-between border-b border-slate-800/80 pb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-2 shadow-md">
+              <svg className="w-full h-full text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+            </div>
+            <h1 className="text-lg font-bold tracking-tight text-white flex items-center">
+              Link<span className="text-indigo-400">Nest</span>
+            </h1>
+          </div>
+          <span className="text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+            Public Statistics
+          </span>
+        </div>
+
+        {/* Short Code & Stats summary */}
+        <div className="flex flex-col items-center justify-center text-center space-y-4 py-2">
+          <span className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+            Redirections Recorded
+          </span>
+          <div className="relative flex items-center justify-center">
+            {/* Click Count Ring */}
+            <div className="w-36 h-36 rounded-full border-4 border-slate-800 flex flex-col items-center justify-center bg-slate-900/40 shadow-inner relative">
+              <div className="absolute inset-0.5 rounded-full border border-indigo-500/20 animate-ping opacity-30"></div>
+              <span className="text-4xl font-extrabold text-white tracking-tight">
+                {clicks.toLocaleString()}
+              </span>
+              <span className="text-[10px] text-indigo-400 font-semibold uppercase tracking-widest mt-1">
+                Clicks
+              </span>
+            </div>
+          </div>
+          <h2 className="text-xl font-mono font-bold text-white pt-2">
+            /r/{shortCode}
+          </h2>
+        </div>
+
+        {/* URL Properties */}
+        <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 space-y-4 text-sm">
+          {/* Destination */}
+          <div className="space-y-1">
+            <span className="text-xs text-slate-500 block uppercase font-semibold tracking-wider">Original Destination</span>
+            <a 
+              href={originalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1.5 break-all font-mono hover:underline text-xs"
+            >
+              {originalUrl}
+              <ExternalLink className="w-3 h-3 shrink-0" />
+            </a>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 border-t border-slate-800/60 pt-4">
+            {/* Created */}
+            <div className="space-y-1">
+              <span className="text-xs text-slate-500 block uppercase font-semibold tracking-wider">Shortened Date</span>
+              <span className="text-slate-300 font-medium font-mono text-xs flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                {new Date(createdAt).toLocaleDateString()}
+              </span>
+            </div>
+            {/* Expiry Status */}
+            <div className="space-y-1">
+              <span className="text-xs text-slate-500 block uppercase font-semibold tracking-wider">Expiry Status</span>
+              <span className="text-slate-300 font-medium font-mono text-xs flex items-center gap-1.5">
+                {isExpired ? (
+                  <>
+                    <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
+                    <span className="text-red-400 font-bold">Expired</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-emerald-400 font-bold">Active</span>
+                  </>
+                )}
+              </span>
+            </div>
+          </div>
+
+          {expiryDate && (
+            <div className="border-t border-slate-800/60 pt-3 flex items-center justify-between text-xs text-slate-500">
+              <span>Expiry Date:</span>
+              <span className="font-mono text-slate-400">{new Date(expiryDate).toLocaleString()}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Promotion Call To Action */}
+        <div className="text-center pt-2">
+          <Link 
+            to="/login"
+            className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center justify-center gap-1 group transition"
+          >
+            Create your own shortened links
+            <ArrowRight className="w-3.5 h-3.5 transition group-hover:translate-x-1" />
+          </Link>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default PublicStats;
