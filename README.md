@@ -123,7 +123,7 @@ During design, the application structure was built using a clean, layered archit
 ---
 
  **Demo Walkthrough**
-- [Video Demo Placeholder (Loom/YouTube)](https://youtube.com)
+ [Youtube video:https://youtu.be/UcZkpDuDp0g]
 
 ---
 This project is a part of a hackathon run by https://katomaran.com
